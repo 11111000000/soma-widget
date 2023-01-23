@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    <div style="max-width: 435px; margin: 10px">
+      <soma-widget
+        id="widget-1"
+        gradientColor="#2A216A"
+        currencyName="ETH"
+        tokenId="0x2260fac5e5542a773aa44fbcfedf7c193bc2c599-eth"
+        beginTimestamp="1613554236"
+      ></soma-widget>
+    </div>
+    <div style="max-width: 200px; margin: 10px">
+      <soma-widget
+        id="widget-2"
+        gradientColor="#1F4436"
+        strokeColor="#EB7683"
+        currencyName="ETH"
+        tokenId="0x2260fac5e5542a773aa44fbcfedf7c193bc2c599-eth"
+        beginTimestamp="1613554236"
+      ></soma-widget>
+    </div>
+    <div style="max-width: 800px">
+      <soma-widget
+        id="widget-3"
+        gradientColor="#aa00aa"
+        currencyName="ETH"
+        tokenId="0x2260fac5e5542a773aa44fbcfedf7c193bc2c599-eth"
+        beginTimestamp="1613554236"
+      ></soma-widget>
+    </div>
+
+    <script src="index.js" type="module"></script>
+    <script>
+      if (!self.customElements)
+        document.write(
+          '<script src="//unpkg.com/@webreflection/custom-elements-no-builtin"><\x2fscript>'
+        )
+    </script>
+  </body>
+</html>

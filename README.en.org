@@ -1,0 +1,221 @@
+* Universal SVG Widget
+** Idea
+
+A modular widget frontend. Structured according to current *Web Component* and *ES Modules* standards.  Designed in the spirit of *KISS*, *FP* and *Elm architecture* Controlled by a combination of *Single State Atom*, *Unidirectional Data Flow* and *Hooks*. Communication with the server side is solved via ORM code generated from the OpenAPI specification.
+
+** Structure
+
+- Modular architecture based on ES modules, the modules are decomposed according to app usage cases
+
+- Mono-repository based on `yarn workspaces`, due to which all module dependencies, when installed, are not duplicated in separate modules.
+
+** Instructions
+
+To install the dependencies of all modules, from the root of the monorepo:
+
+#+begin_src shell
+yarn
+#+end_src
+
+To start a dev-server with HMR:
+
+#+begin_src shell
+yarn start
+#+end_src
+
+To build with minification:
+
+#+begin_src shell
+yarn build
+#+end_src
+
+* Modularity and composition
+
+ /Write simple parts, connectable by clear interfaces/
+ 
+ /Write programs in such a way that they can be connected to other programs./
+
+*** Functional Programming
+
+/...By introducing assignment, we are forced to introduce the concept of time into our computational models. Before we had assignment, our programs did not depend on time, in the sense that every expression that had a value always had the same value./
+( /SICP/ )
+
+- Functional abstraction and composition instead of OOP (*class* and *this* are not used whenever possible)
+- Factors - instead of classes and inheritance
+- Constants - instead of variables (write *const* instead of *var*)
+- Iterators over cycles (*map* / *reduce*)
+- Components as pure functions, that returns HTML literal
+
+*** Code generation
+
+/Avoid typing the code by hand; write programs that write programs whenever you get a chance/
+
+To make it easier and faster to create new modules and entities for generic components and models, we use code generators from templates such as [[https://github.com/jondot/hygen][hygen]] 
+
+*** Separating the interface from the implementation
+
+/Separate rules from mechanism; separate interface from engine
+
+  device interface components as pure functions from the state of the model. Interface components don't generally contain the details of the business logic, which is centered in redusers and hooks or a finite state machine. 
+
+*** Reliability
+
+/Reliability is the child of transparency and simplicity/
+
+*** Optimization
+
+  /First a prototype, then a "tweaking". Make it work stable, then optimize it./
+
+*** Cost-effectiveness and simplicity
+
+  /Simple is better than arcane. Add complexity only where needed/ 
+
+
+*** Web Components
+
+[[https://codaholic.sillo.org/wp-content/uploads/2020/01/Capture-34.png]]
+
+ *Web Components* are a series of standards from the **W3C** consortium that aim to create a culture of reusable components for web applications. 
+
+ Web components are supported directly by modern web browsers and do not require additional libraries to work, but a number of rules and techniques must be followed when developing with them (see `customElements.define(...)` and `LitElement`).
+ The specification includes four standards, each of which can be applied independently:
+
+ - **Custom Elements** - extension of native and creation of custom HTML elements (tags)
+ - **HTML Templates** - tag `<template>` allows you to implement templates for components (use only `<slot>`)
+ - **Shadow DOM** - Isolates the DOM and styles (replace the iframe to isolate the component)
+ - **ES Imports** - Loads modules, Buildless and CDN
+
+*** Elm Architecture.
+
+[[https://medium.com/javascript-inside/elm-architecture-for-react-951b383fcd65]][application layout pattern]], which is an infinitely nested block. It greatly improves modularity and simplifies code reuse and testing. 
+[[https://sporto.github.io/elm-workshop/images/diagram-tea.png]]
+
+The program logic is broken down into three clearly separated parts: model, update, and display. You can start with this component skeleton each time, and then gradually fill it with task-specific details.
+
+The conditional formula for the interface in the Elm architecture (pseudocode):
+
+#+BEGIN_EXAMPLE
+render = (state, actions) => return `<button onAction=${actions.someAction}>${state.someState}</button>`
+
+loop((currentState, actions) => {
+  newState = machine.transition(currentState, actions)
+  render(newState, actions)
+  return newState
+})
+#+END_EXAMPLE
+
+Using *Elm-architecture* in practice means that interface components are mostly [[https://ru.wikipedia.org/wiki/%D0%A7%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B0_%D1%84%D1%83%D0%BD%D0%BA%D1%86%D0%B8%D0%B8][pure functions]]. For example, a button with a picture and the caption:
+
+#+BEGIN_EXAMPLE
+import icon from 'modules/art/test.png'
+
+export default component((props) => (
+  (state, actions) => {
+    return (
+      <button onclick={ actions.buttonClick } >
+        <span>{ state.flag ? 'On' : 'Off' }</span>
+      </button>
+    )
+  }
+
+
+#+END_EXAMPLE
+
+State change is also a pure function that returns a new state (reducer):
+
+#+BEGIN_SRC javascript
+export const state = {
+  flag: false,
+  something: [1,2,3]
+}
+
+export const actions = {
+  buttonClick: () => 
+    (state,actions) => 
+      ({ ...state, flag: !state.flag })
+      
+}
+#+END_SRC
+
+Reuse and extension of state control models is achieved by [[https://github.com/acdlite/recompose][functional composition]], as opposed to /inheritance/
+
+*** Functional state control.
+
+ When forming components, we *NOT* use OOP classes, we don't implement state in `this'.  State is stored and retrieved either via hooks - `useState`, or `useReducer`, or `useMachine`, or passed via `props` of the element. This allows you to maintain a convenient *one-directional flow of data* in debugging, thus avoiding confusing logic.
+ 
+ Regarding the principle of choosing one or another state control mechanism, it is recommended to adhere to the following algorithm:
+ 
+  - if the state of elements of a component is not used in other components, but is local to the current component, then we apply hooks: *useState* or *useReducer* (when data is more complex than the scalar type).
+ 
+  - if changing state involves *side effects*, such as server requests or it must affect the state of other elements - use the `useEffect` hook, `useMachine` to connect an appropriate automaton, or wrap the component as `observedComponent(MyComponent)` and use the state from the `app-state` module
+
+  - When using an appState object in a web component created using `observedComponent`, changes in the fields of that object cause the component to be redrawn. So, it is elementary to write:
+
+#+begin_src 
+import { html,render,observedComponent } from dna
+import { appState } from 'app-state
+                                                 '
+customElements.define('user-name-tag', observedComponent(() => html`<div style="color:green">${appState.userName}</div>`)
+  
+render(window.body html`<user-name-tag></user-name-tag>`)
+#+end_src
+
+Which will print the user's green name
+
+
+**** Hooks
+
+ Hooks are a way of controlling the state of an application and creating side-effects using only functions.  
+
+ We usually create a class in React or Web Components when we need some lifecycle, state, or logic:
+
+#+BEGIN_SRC javascript
+class {
+  constructor(props) {...}
+  componentDidMount() {...}
+  componentWillUnmount() {...}
+  render() {...}
+}
+#+END_SRC
+
+ Hooks allow us to create components with state, without using classes:
+
+#+BEGIN_SRC javascript
+function {
+  useHook{...};
+  useHook{...};
+  useHook{...};
+  return (
+    ...
+  );
+}
+#+END_SRC
+
+To implement Hooks API in conjunction with lit-element, we use the Haunted micro-library
+  
+**** State Machine
+
+(variant: robot)
+
+For us, it's a way to improve developer productivity by improving the often shaky relationship with UX designers through a deterministic description of functionality. The idea of a finite state machine is very simple: conventionally, any of our components can be in one of states, the number of which is limited, *transitions* between states occur by calling *actions*.
+
+[[https://symfony.com/doc/current/_images/pull_request.png]]
+
+In the top-level component, it is connected via the *useMachine* hook:
+
+#+BEGIN_SRC javascript
+const App = () => {
+  const [current, send] = useMachine(searchMachine)
+  ...
+#+END_SRC
+
+Where `current` is the current state of the machine
+and `send` is the way to send the event.
+
+**** Bus
+
+For universal binding of different components and services, we use a data bus based on pubsubjs
+
+- [ ] Add pubsubjs
+
+
